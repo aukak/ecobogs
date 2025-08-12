@@ -1,133 +1,136 @@
 (async () => {
-  const url = location.href;
-  let userId = null;
-
-  const patterns = [
-    /\/users\/(\d+)\/profile/,
-    /\/user\/id=(\d+)/,
-    /\/users\/(\d+)/
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) {
-      userId = match[1];
-      break;
-    }
+  if (!document.getElementById('fa-style')) {
+    const faLink = document.createElement('link');
+    faLink.id = 'fa-style';
+    faLink.rel = 'stylesheet';
+    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    document.head.appendChild(faLink);
   }
-  if (!userId) return;
 
-  const waitForElement = (selector, timeout = 7000) => new Promise((res, rej) => {
+  const waitFor = (selector, timeout = 7000) => new Promise((resolve, reject) => {
     const el = document.querySelector(selector);
-    if (el) return res(el);
+    if (el) return resolve(el);
     const observer = new MutationObserver(() => {
       const found = document.querySelector(selector);
       if (found) {
         observer.disconnect();
-        res(found);
+        resolve(found);
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
     setTimeout(() => {
       observer.disconnect();
-      rej(null);
+      reject(null);
     }, timeout);
   });
 
-  const containers = ['.profile-page__content', '#main-content', 'main', '.profile-container'];
-  let profileMain = null;
-  for (const sel of containers) {
-    profileMain = await waitForElement(sel).catch(() => null);
-    if (profileMain) break;
+  async function fetchRapAndValue(userId) {
+    try {
+      const collectiblesRes = await fetch(`https://ecsr.io/apisite/inventory/v1/users/${userId}/assets/collectibles`, { credentials: 'include' });
+      const collectiblesData = await collectiblesRes.json();
+      const collectibles = Array.isArray(collectiblesData) ? collectiblesData : (collectiblesData.data || []);
+
+      const itemsRes = await fetch('https://ecomons.vercel.app/api/items');
+      const itemsData = await itemsRes.json();
+      const itemsArr = Array.isArray(itemsData) ? itemsData : (itemsData.data || []);
+
+      const valueMap = new Map();
+      itemsArr.forEach(item => {
+        if (item.name && typeof item.value === 'number') {
+          valueMap.set(item.name.trim(), item.value);
+        }
+      });
+
+      const rapTotal = collectibles.reduce((sum, c) => sum + (c.recentAveragePrice || 0), 0);
+      const valueTotal = collectibles.reduce((sum, c) => sum + (valueMap.get(c.name.trim()) || 0), 0);
+
+      return { rapTotal, valueTotal };
+    } catch (e) {
+      console.error('[ecosbog] fetchRapAndValue error', e);
+      return null;
+    }
   }
-  if (!profileMain) profileMain = document.body;
 
-  if (getComputedStyle(profileMain).display !== 'flex') {
-    profileMain.style.display = 'flex';
+  function createStatElement(label, value, link) {
+    const container = document.createElement('div');
+    container.className = 'col-12 col-lg-2 text-center';
+    container.style.cursor = 'pointer';
+
+    const labelEl = document.createElement('p');
+    labelEl.className = 'statHeader-0-2-59';
+    labelEl.style.textTransform = 'none'; 
+    labelEl.style.marginBottom = '6px';
+    labelEl.style.fontWeight = 'normal';
+    labelEl.style.color = '#c3c3c3';
+    labelEl.style.fontSize = '16px';
+    labelEl.style.fontFamily = '"Roboto", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement('a');
+    valueEl.className = 'statValue-0-2-60';
+    valueEl.href = link;
+    valueEl.target = '_blank';
+    valueEl.rel = 'noopener noreferrer';
+    valueEl.style.color = '#c3c3c3';
+    valueEl.style.fontWeight = '500';  
+    valueEl.style.fontSize = '18px';
+    valueEl.style.fontFamily = '"Roboto", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+    valueEl.textContent = value;
+
+    container.appendChild(labelEl);
+    container.appendChild(valueEl);
+
+    return container;
   }
 
-  const container = document.createElement('div');
-  container.style.cssText = `
-    background: #1f1f1f;
-    border-radius: 12px;
-    padding: 20px;
-    width: 240px;
-    color: #eee;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    margin-left: 20px;
-    flex-shrink: 0;
-    user-select: none;
-  `;
-  container.textContent = 'Loading stats...';
-  profileMain.appendChild(container);
+  async function insertRapValue() {
+    const pathParts = location.pathname.split('/');
+    const userId = pathParts.length > 2 ? pathParts[2] : null;
+    if (!userId) return;
 
-  const makeStat = (id, label, value, url) => {
-    const link = document.createElement('a');
-    link.id = id;
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.style.cssText = `
-      display: block;
-      color: #55aaff;
-      text-decoration: none;
-      margin-bottom: 16px;
-      user-select: text;
-    `;
-    link.innerHTML = `
-      <div style="font-size: 12px; color: #999; font-weight: 600;">${label}</div>
-      <div style="font-size: 20px; font-weight: 700;">${value.toLocaleString()}</div>
-    `;
-    return link;
-  };
+    const statsContainer = await waitFor('.col-12.col-lg-10.ps-0');
+    if (!statsContainer) return;
 
-  const makeTradeBtn = (userId) => {
-    const btn = document.createElement('a');
-    btn.href = `https://ecsr.io/trade/${userId}`;
-    btn.target = '_blank';
-    btn.rel = 'noopener noreferrer';
-    btn.textContent = 'Trade';
-    btn.style.cssText = `
-      display: inline-block;
-      background: #55aaff;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 16px;
-      cursor: pointer;
-      text-align: center;
-      user-select: none;
-      transition: background-color 0.25s ease;
-      text-decoration: none;
-      box-shadow: 0 4px 12px rgba(85, 170, 255, 0.7);
-      width: 100%;
-    `;
-    btn.addEventListener('mouseenter', () => btn.style.backgroundColor = '#3a88d7');
-    btn.addEventListener('mouseleave', () => btn.style.backgroundColor = '#55aaff');
-    return btn;
-  };
+    const row = statsContainer.querySelector('.row');
+    if (!row) return;
 
-  try {
-    const [statusRes, ecomonsRes] = await Promise.all([
-      fetch(`https://ecsr.io/apisite/users/v1/users/${userId}/status`, { credentials: 'include' }),
-      fetch(`https://ecomons.vercel.app/api/users/${userId}`)
-    ]);
+    ['#ecosbog-rap', '#ecosbog-value', '#ecosbog-rank'].forEach(sel => {
+      const existing = row.querySelector(sel);
+      if (existing) existing.remove();
+    });
 
-    if (!statusRes.ok || !ecomonsRes.ok) throw new Error();
+    const data = await fetchRapAndValue(userId);
+    if (!data) return;
 
-    const statusData = await statusRes.json();
-    const ecomonsData = await ecomonsRes.json();
+    const rapEl = createStatElement('rap', data.rapTotal.toLocaleString(), `https://ecsr.io/internal/collectibles?userId=${userId}`);
+    rapEl.id = 'ecosbog-rap';
 
-    const rapTotal = statusData.user.rap ?? 0;
-    const valueTotal = ecomonsData.value ?? 0;
+    const valueEl = createStatElement('value', data.valueTotal.toLocaleString(), `https://ecomons.vercel.app/user/${userId}`);
+    valueEl.id = 'ecosbog-value';
 
-    container.textContent = '';
-    container.appendChild(makeStat('rapStat', 'RAP', rapTotal, `https://ecsr.io/internal/collectibles?userId=${userId}`));
-    container.appendChild(makeStat('valueStat', 'VALUE', valueTotal, `https://ecomons.vercel.app/user/${userId}`));
-    container.appendChild(makeTradeBtn(userId));
-  } catch {
-    container.textContent = 'Failed to load stats';
+    const rankEl = createStatElement('rank', 'soon!', '#');
+    rankEl.id = 'ecosbog-rank';
+    rankEl.style.cursor = 'default';
+    rankEl.querySelector('a').removeAttribute('href');
+    rankEl.querySelector('a').style.color = '#c3c3c3';
+    rankEl.querySelector('a').style.textDecoration = 'none';
+
+    row.appendChild(rapEl);
+    row.appendChild(valueEl);
+    row.appendChild(rankEl);
+  }
+
+  let lastURL = location.href;
+  setInterval(() => {
+    if (location.href !== lastURL) {
+      lastURL = location.href;
+      if (/^\/users\/\d+\/profile/.test(location.pathname)) {
+        setTimeout(insertRapValue, 300);
+      }
+    }
+  }, 700);
+
+  if (/^\/users\/\d+\/profile/.test(location.pathname)) {
+    insertRapValue();
   }
 })();

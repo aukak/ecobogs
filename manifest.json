@@ -1,22 +1,24 @@
 {
   "manifest_version": 3,
-  "name": "ecsrmons",
+  "name": "ecosbog",
   "version": "1.0",
-  "description": "made by bog.lat on discord",
-  "permissions": ["scripting", "activeTab"],
+  "description": "like rovalk but for escr.io (and better 😉)",
+  "permissions": ["scripting"],
   "host_permissions": [
     "https://ecsr.io/*",
     "https://ecomons.vercel.app/*"
   ],
   "content_scripts": [
-    {
-      "matches": [
-        "https://ecsr.io/users/*/profile*",
-        "https://ecsr.io/user/id=*",
-        "https://ecsr.io/users/*"
-      ],
+    { 
+      "matches": ["https://ecsr.io/users/*/profile"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }
