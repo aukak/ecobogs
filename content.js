@@ -102,13 +102,13 @@
     const data = await fetchRapAndValue(userId);
     if (!data) return;
 
-    const rapEl = createStatElement('rap', data.rapTotal.toLocaleString(), `https://ecsr.io/internal/collectibles?userId=${userId}`);
+    const rapEl = createStatElement('Rap', data.rapTotal.toLocaleString(), `https://ecsr.io/internal/collectibles?userId=${userId}`);
     rapEl.id = 'ecosbog-rap';
 
-    const valueEl = createStatElement('value', data.valueTotal.toLocaleString(), `https://ecomons.vercel.app/user/${userId}`);
+    const valueEl = createStatElement('Value', data.valueTotal.toLocaleString(), `https://ecomons.vercel.app/user/${userId}`);
     valueEl.id = 'ecosbog-value';
 
-    const rankEl = createStatElement('rank', 'soon!', '#');
+    const rankEl = createStatElement('Rank', 'Soon!', '#');
     rankEl.id = 'ecosbog-rank';
     rankEl.style.cursor = 'default';
     rankEl.querySelector('a').removeAttribute('href');
