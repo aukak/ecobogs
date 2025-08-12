@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "ecsrmons",
+  "version": "1.0",
+  "description": "made by bog.lat on discord",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": [
+    "https://ecsr.io/*",
+    "https://ecomons.vercel.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ecsr.io/users/*/profile*",
+        "https://ecsr.io/user/id=*",
+        "https://ecsr.io/users/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
