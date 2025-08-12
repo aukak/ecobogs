@@ -3,5 +3,6 @@
 ----------------------------------------
 more updates coming soon. bog.lat for bugs and reports.
 ----------------------------------------
-- made with love https://truffled.lol 
+----------------------------------------
+made with love https://truffled.lol 
 ## <3333
